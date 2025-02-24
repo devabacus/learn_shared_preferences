@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() => runApp(const MyApp());
+void main() {
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -9,69 +11,86 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      title: 'Shared preferences demo',
-      home: MyHomePage(title: 'Shared preferences demo'),
+      debugShowCheckedModeBanner: false,
+      home: HomeScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _controller = TextEditingController();
+  String? _savedName;
 
   @override
   void initState() {
     super.initState();
-    _loadCounter();
+    _loadName();
   }
 
-  /// Load the initial counter value from persistent storage on start,
-  /// or fallback to 0 if it doesn't exist.
-  Future<void> _loadCounter() async {
+  /// Загружаем имя из SharedPreferences
+  Future<void> _loadName() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _counter = prefs.getInt('counter') ?? 0;
+      _savedName = prefs.getString('username');
     });
   }
 
-  /// After a click, increment the counter state and
-  /// asynchronously save it to persistent storage.
-  Future<void> _incrementCounter() async {
+  /// Сохраняем имя в SharedPreferences
+  Future<void> _saveName() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _counter = (prefs.getInt('counter') ?? 0) + 1;
-      prefs.setInt('counter', _counter);
-    });
+    await prefs.setString('username', _controller.text.trim());
+    _loadName(); // Обновляем UI
+  }
+
+  /// Удаляем имя из SharedPreferences
+  Future<void> _deleteName() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('username');
+    _loadName(); // Обновляем UI
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: Center(
+      appBar: AppBar(title: const Text('Shared Preferences')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('You have pushed the button this many times: '),
             Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+              _savedName == null || _savedName!.isEmpty
+                  ? 'Введите имя'
+                  : 'Сохраненное имя: $_savedName',
+              style: const TextStyle(fontSize: 20),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _controller,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Введите имя',
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _saveName,
+              child: const Text('Сохранить'),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: _deleteName,
+              child: const Text('Удалить'),
             ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
